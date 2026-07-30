@@ -37,6 +37,9 @@ Needs `nasm` and `ld`.
 ./discrete_fractal <n> < input.in
 ```
 
+`n` is decimal, 0 to 2^32 - 1. Anything else (missing arg, extra args,
+garbage, out of range) is an error.
+
 ## Input format
 
 ```
@@ -46,29 +49,44 @@ Needs `nasm` and `ld`.
 ...
 ```
 
-- Line 1 is the axiom (the starting string). Printable ASCII only (33–126).
+- Line 1 is the axiom (the starting string). Printable ASCII only (33–126),
+  and it can be empty (just a blank line).
 - Every line after that defines one rule: first character is the symbol,
   the rest of the line is what it expands into.
 - A symbol with no rule is terminal — it's just printed as-is.
 - A rule can expand to nothing (symbol immediately followed by newline) —
   that symbol disappears.
 - Each symbol can only be defined once.
-- No spaces or control characters anywhere in the input.
+- No spaces or control characters anywhere in the input — every byte other
+  than the trailing newlines has to be a symbol (33–126).
+- Every line, including the last, ends with a newline.
+
+The final string (after `n` iterations) is printed to stdout, followed by
+a newline.
+
+## Exit codes
+
+`0` on success, `1` on any error — wrong number of arguments, invalid `n`,
+malformed input, or a failed syscall. Either way, whatever memory got
+allocated is freed before exiting.
 
 ## Example
 
-Axiom `A`, rule `A → AB`, no rule for `B`:
+Axiom `A`, rules `A → AB` and `B → A`:
 
 ```
 A
 AAB
+BA
 ```
 
-| n | output |
-|---|--------|
-| 0 | `A`    |
-| 1 | `AB`   |
-| 2 | `ABB`  |
+| n | output       |
+|---|--------------|
+| 0 | `A`          |
+| 1 | `AB`         |
+| 2 | `ABA`        |
+| 3 | `ABAAB`      |
+| 4 | `ABAABABA`   |
 
-At n=2 the first `A` becomes `AB`, then that `A` becomes `AB` again, while
-the `B`s along the way just pass through unchanged — giving `ABB`.
+At each step every `A` becomes `AB` and every `B` becomes `A`, all at once —
+that's what "iteration" means here.
